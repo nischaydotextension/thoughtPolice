@@ -36,12 +36,12 @@ class MultiModelPipeline {
   private verbose: boolean = false;
   
   // Optimized model selection - single strong model for summarization
-  private summarizerModel = 'mistralai/mistral-7b-instruct:free';
-  private contradictionModel = 'mistralai/mistral-7b-instruct:free';
+  private summarizerModel = 'openrouter/cypher-alpha:free';
+  private contradictionModel = 'openrouter/cypher-alpha:free';
   
   // Fallback to stronger models if budget allows
-  private premiumSummarizerModel = 'mistralai/mixtral-8x7b-instruct';
-  private premiumContradictionModel = 'anthropic/claude-3.5-sonnet';
+  private premiumSummarizerModel = 'openrouter/cypher-alpha:free';
+  private premiumContradictionModel = 'openrouter/cypher-alpha:free';
 
   constructor() {
     try {
