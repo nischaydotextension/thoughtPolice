@@ -1,21 +1,24 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Shield, Trophy, Search, User, TrendingUp, LogOut, LogIn, Menu } from 'lucide-react';
+'use client'
 
-import ThemeToggle from './ThemeToggle';
-import { useAuth } from '../contexts/AuthContexts';
+import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Shield, Trophy, Search, User, TrendingUp, LogOut, LogIn, Menu } from 'lucide-react'
+
+import ThemeToggle from './ThemeToggle'
+import { useAuth } from '@/lib/contexts/AuthContexts'
 
 const Navigation: React.FC = () => {
-  const location = useLocation();
-  const { isAuthenticated, signOut, signIn } = useAuth();
+  const pathname = usePathname()
+  const { isAuthenticated, signOut, signIn } = useAuth()
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => pathname === path
 
   return (
     <nav className="bg-reddit-light-bg dark:bg-reddit-dark-bg-light shadow-lg border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link to="/" className="flex items-center space-x-3">
+          <Link href="/" className="flex items-center space-x-3">
             <div className="relative">
               <Shield className="h-8 w-8 text-reddit-orange" />
               <div className="absolute inset-0 bg-reddit-orange/20 rounded-full animate-pulse"></div>
@@ -26,7 +29,7 @@ const Navigation: React.FC = () => {
           <div className="hidden md:flex items-center space-x-6">
             <div className="flex space-x-6">
               <Link
-                to="/"
+                href="/"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   isActive('/') 
                     ? 'bg-reddit-orange text-white shadow-lg shadow-reddit-orange/25' 
@@ -37,7 +40,7 @@ const Navigation: React.FC = () => {
                 <span>Analyze</span>
               </Link>
               <Link
-                to="/leaderboard"
+                href="/leaderboard"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   isActive('/leaderboard') 
                     ? 'bg-reddit-orange text-white shadow-lg shadow-reddit-orange/25' 
@@ -48,7 +51,7 @@ const Navigation: React.FC = () => {
                 <span>Leaderboard</span>
               </Link>
               <Link
-                to="/stats"
+                href="/stats"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   isActive('/stats') 
                     ? 'bg-reddit-orange text-white shadow-lg shadow-reddit-orange/25' 
@@ -59,7 +62,7 @@ const Navigation: React.FC = () => {
                 <span>Stats</span>
               </Link>
               <Link
-                to="/profile"
+                href="/profile"
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   isActive('/profile') 
                     ? 'bg-reddit-orange text-white shadow-lg shadow-reddit-orange/25' 
@@ -99,7 +102,7 @@ const Navigation: React.FC = () => {
         </div>
       </div>
     </nav>
-  );
-};
+  )
+}
 
-export default Navigation;
+export default Navigation

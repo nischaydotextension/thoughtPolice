@@ -1,10 +1,12 @@
-import React from 'react';
-import { Moon, Sun } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useTheme } from '../contexts/ThemeContext';
+'use client'
+
+import React from 'react'
+import { Moon, Sun } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useTheme } from '@/lib/contexts/ThemeContext'
 
 const ThemeToggle: React.FC = () => {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, toggleTheme } = useTheme()
 
   return (
     <motion.button
@@ -43,7 +45,7 @@ const ThemeToggle: React.FC = () => {
         transition={{ duration: 0.3 }}
       />
     </motion.button>
-  );
-};
+  )
+}
 
-export default ThemeToggle;
+export default ThemeToggle
