@@ -17,11 +17,10 @@ import {
   Settings
 } from 'lucide-react';
 import { mockUsers, mockAchievements } from '../data/mockData';
-import { useAuth0 } from '@auth0/auth0-react';
 import { BoltNewBadge } from '../components/ui/bolt-new-badge';
 
 const ProfilePage: React.FC = () => {
-  const { isAuthenticated } = useAuth0();
+  
   const [activeTab, setActiveTab] = useState<'posts' | 'comments' | 'about'>('posts');
   
   // Always show mock data - no authentication restriction
@@ -176,13 +175,13 @@ const ProfilePage: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-3">
-              {!isAuthenticated && (
+              {/* {!isAuthenticated && ( */}
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
                   <p className="text-xs text-blue-700 dark:text-blue-300">
                     Demo Profile - Sign in to access your real profile
                   </p>
                 </div>
-              )}
+              {/* )} */}
               <button className="bg-reddit-light-bg-hover dark:bg-reddit-dark-bg-hover border border-reddit-light-border dark:border-reddit-dark-border px-4 py-2 rounded-full text-sm font-medium text-reddit-light-text dark:text-reddit-dark-text hover:bg-reddit-light-border dark:hover:bg-reddit-dark-border transition-colors">
                 Start Chat
               </button>

@@ -1,22 +1,15 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Shield, Trophy, Search, User, TrendingUp, LogOut, LogIn, Menu } from 'lucide-react';
-import { useAuth0 } from '@auth0/auth0-react';
+
 import ThemeToggle from './ThemeToggle';
+import { useAuth } from '../contexts/AuthContexts';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
-  const { isAuthenticated, logout, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, signOut, signIn } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
-
-  const handleLogin = () => {
-    loginWithRedirect({
-      appState: {
-        returnTo: location.pathname
-      }
-    });
-  };
 
   return (
     <nav className="bg-reddit-light-bg dark:bg-reddit-dark-bg-light shadow-lg border-b border-reddit-light-border dark:border-reddit-dark-border transition-colors duration-200">
@@ -78,27 +71,25 @@ const Navigation: React.FC = () => {
               </Link>
               {isAuthenticated ? (
                 <button
-                  onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange hover:bg-reddit-light-bg-hover dark:hover:bg-reddit-dark-bg-hover`}
+                  onClick={signOut}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange hover:bg-reddit-light-bg-hover dark:hover:bg-reddit-dark-bg-hover"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
                 </button>
               ) : (
                 <button
-                  onClick={handleLogin}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange hover:bg-reddit-light-bg-hover dark:hover:bg-reddit-dark-bg-hover`}
+                  onClick={signIn}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange hover:bg-reddit-light-bg-hover dark:hover:bg-reddit-dark-bg-hover"
                 >
                   <LogIn className="h-4 w-4" />
                   <span>Login</span>
                 </button>
               )}
             </div>
-            {/* Theme Toggle */}
             <ThemeToggle />
           </div>
 
-          {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-3">
             <ThemeToggle />
             <button className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary hover:text-reddit-orange transition-colors">
