@@ -45,7 +45,7 @@ class MultiModelPipeline {
 
   constructor() {
     try {
-      this.apiKey = "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";
+      this.apiKey = process.env.OPENROUTER_API_KEY!;
       if (!this.apiKey) {
         console.warn('OpenRouter API key not found - using fallback analysis');
         this.isAvailable = false;

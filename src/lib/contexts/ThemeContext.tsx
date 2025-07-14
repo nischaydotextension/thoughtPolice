@@ -50,14 +50,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsDark(!isDark)
   }
 
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return <>{children}</>
-  }
-
   return (
     <ThemeContext.Provider value={{ isDark, toggleTheme }}>
-      {children}
+      {mounted ? children : null}
     </ThemeContext.Provider>
   )
 }

@@ -19,7 +19,7 @@ import {
   Settings
 } from 'lucide-react'
 import { mockUsers, mockAchievements } from '@/lib/data/mockData'
-import { BoltNewBadge } from '../ui/bolt-new-badge'
+// import { BoltNewBadge } from '../ui/bolt-new-badge'
 
 const ProfilePage: React.FC = () => {
   
@@ -145,14 +145,14 @@ const ProfilePage: React.FC = () => {
                     VERIFIED
                   </div>
                   {/* Bolt Badge */}
-                  <div className="relative">
+                  {/* <div className="relative">
                     <BoltNewBadge 
                       position="top-right" 
                       variant="text" 
                       size="small"
                       className="!relative !top-0 !right-0 !w-12 !h-auto"
                     />
-                  </div>
+                  </div> */}
                 </div>
               </div>
               

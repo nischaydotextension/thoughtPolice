@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, User, ExternalLink, Loader, CheckCircle, XCircle, AlertCircle, DollarSign, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { analysisService } from '../services/analysisService';
+import { analysisService } from '../lib/services/analysisService';
 
 interface SearchFormProps {
   onSearch: (username: string) => void;

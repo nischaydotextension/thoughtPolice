@@ -32,7 +32,7 @@ import {
   Shield,
   Star
 } from 'lucide-react'
-import { BoltNewBadge } from '../ui/bolt-new-badge'
+// import { BoltNewBadge } from '../ui/bolt-new-badge'
 
 const StatsPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d')
@@ -87,14 +87,14 @@ const StatsPage: React.FC = () => {
                   r/ThoughtPolice/Analytics
                 </h1>
                 {/* Inline Bolt Badge for header */}
-                <div className="relative">
+                {/* <div className="relative">
                   <BoltNewBadge 
                     position="top-right" 
                     variant="text" 
                     size="small"
                     className="!relative !top-0 !right-0 !w-16 !h-auto"
-                  />
-                </div>
+                  /> 
+                </div> */}
               </div>
               <p className="text-reddit-light-text-secondary dark:text-reddit-dark-text-secondary mt-1">
                 Community insights and platform statistics • Real-time data from our thought police operations

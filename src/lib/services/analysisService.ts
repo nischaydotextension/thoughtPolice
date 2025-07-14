@@ -80,32 +80,38 @@ export class AnalysisService {
 
       // Perform optimized pipeline analysis
       this.debug(`Starting optimized pipeline analysis for ${cleanUsername}`);
-      const reportData = await multiModelPipeline.analyzeUser(
-        userData.comments, 
-        userData.posts, 
-        cleanUsername
-      );
+      try {
+        const reportData = await multiModelPipeline.analyzeUser(
+          userData.comments, 
+          userData.posts, 
+          cleanUsername
+        );
+        this.debug('AI analysis result:', reportData);
 
-      // Create analysis result with weighted confidence
-      const analysis: Analysis = {
-        id: `analysis-${Date.now()}-${cleanUsername}`,
-        targetUsername: cleanUsername,
-        analyzerUserId,
-        contradictionsFound: reportData.contradictions.length,
-        confidenceScore: this.calculateWeightedConfidence(reportData.contradictions),
-        analysisDate: new Date().toISOString(),
-        reportData,
-        status: 'completed'
-      };
+        // Create analysis result with weighted confidence
+        const analysis: Analysis = {
+          id: `analysis-${Date.now()}-${cleanUsername}`,
+          targetUsername: cleanUsername,
+          analyzerUserId,
+          contradictionsFound: reportData.contradictions.length,
+          confidenceScore: this.calculateWeightedConfidence(reportData.contradictions),
+          analysisDate: new Date().toISOString(),
+          reportData,
+          status: 'completed'
+        };
 
-      this.debug(`Analysis complete for ${cleanUsername}:`, {
-        contradictionsFound: analysis.contradictionsFound,
-        weightedConfidence: analysis.confidenceScore,
-        totalItemsAnalyzed: userData.comments.length + userData.posts.length,
-        budgetUsed: tokenBudget.getBudgetStatus().spent.toFixed(4)
-      });
-      
-      return analysis;
+        this.debug(`Analysis complete for ${cleanUsername}:`, {
+          contradictionsFound: analysis.contradictionsFound,
+          weightedConfidence: analysis.confidenceScore,
+          totalItemsAnalyzed: userData.comments.length + userData.posts.length,
+          budgetUsed: tokenBudget.getBudgetStatus().spent.toFixed(4)
+        });
+        
+        return analysis;
+      } catch (aiError) {
+        this.debug('AI analysis failed:', aiError);
+        throw aiError;
+      }
 
     } catch (error) {
       this.debug('Analysis failed:', error);
@@ -280,7 +286,7 @@ export class AnalysisService {
       yield { stage: 'complete', progress: 100, data: reportData };
       
     } catch (error) {
-      yield { stage: 'error', progress: 0, data: { error: error.message } };
+      yield { stage: 'error', progress: 0, data: { error: error instanceof Error ? error.message : 'Unknown error' } };
     }
   }
 }

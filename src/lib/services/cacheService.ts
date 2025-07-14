@@ -57,19 +57,18 @@ class CacheService {
   }
 
   private saveToStorage(): void {
+    const data = {
+      version: this.CACHE_VERSION,
+      entries: Object.fromEntries(this.cache.entries()),
+      lastSaved: Date.now()
+    };
     try {
-      const data = {
-        version: this.CACHE_VERSION,
-        entries: Object.fromEntries(this.cache.entries()),
-        lastSaved: Date.now()
-      };
-
       localStorage.setItem('thoughtPoliceCache', JSON.stringify(data));
     } catch (error) {
       console.warn('Failed to save cache to storage:', error);
       
       // If storage is full, try to free up space
-      if (error.name === 'QuotaExceededError') {
+      if (error instanceof Error && error.name === 'QuotaExceededError') {
         this.evictOldest(Math.floor(this.cache.size / 2));
         try {
           localStorage.setItem('thoughtPoliceCache', JSON.stringify(data));

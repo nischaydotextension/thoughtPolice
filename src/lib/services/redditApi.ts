@@ -91,7 +91,7 @@ class RedditApiService {
       this.debug('Request successful:', { url, status: response.status });
       return response.data;
     } catch (error) {
-      this.debug('Request failed:', { url, error: error.message });
+      this.debug('Request failed:', { url, error: error instanceof Error ? error.message : 'Unknown error' });
       
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 404) {
@@ -100,13 +100,13 @@ class RedditApiService {
           throw new Error('Rate limit exceeded. Please try again later.');
         } else if (error.response?.status === 503) {
           throw new Error('Service temporarily unavailable. Please try again later.');
-        } else if (error.response?.status >= 500) {
+        } else if (error.response?.status && error.response.status >= 500) {
           throw new Error(`Server error occurred (${error.response.status}). Please try again.`);
         } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
           throw new Error('Request timeout. Please try again.');
         }
       }
-      throw new Error(`Failed to fetch data: ${error.message}`);
+      throw new Error(`Failed to fetch data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -172,7 +172,7 @@ class RedditApiService {
 
         await this.delay(1000); // Rate limiting
       } catch (error) {
-        this.debug('Reddit API error:', error.message);
+        this.debug('Reddit API error:', error instanceof Error ? error.message : 'Unknown error');
         break;
       }
     }
@@ -218,7 +218,7 @@ class RedditApiService {
           if (batch.length > 0) {
             yield batch;
             totalFetched += batch.length;
-            before = Math.min(...batch.map(c => c.created_utc)) - 1;
+            before = Math.min(...batch.map((c: any) => c.created_utc)) - 1;
             this.debug(`Pushshift batch yielded: ${batch.length}, total: ${totalFetched}`);
           } else {
             break;
@@ -227,7 +227,7 @@ class RedditApiService {
           pushShiftAttempts++;
           await this.delay(2000); // Pushshift rate limiting
         } catch (error) {
-          this.debug('Pushshift error:', error.message);
+          this.debug('Pushshift error:', error instanceof Error ? error.message : 'Unknown error');
           break;
         }
       }
@@ -290,7 +290,7 @@ class RedditApiService {
 
         await this.delay(1000);
       } catch (error) {
-        this.debug('Posts API error:', error.message);
+        this.debug('Posts API error:', error instanceof Error ? error.message : 'Unknown error');
         break;
       }
     }
@@ -378,7 +378,7 @@ class RedditApiService {
 
       return { user, comments, posts };
     } catch (error) {
-      this.debug('Failed to fetch comprehensive user data:', error.message);
+      this.debug('Failed to fetch comprehensive user data:', error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   }

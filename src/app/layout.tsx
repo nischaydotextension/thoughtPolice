@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import { ThemeProvider } from '@/lib/contexts/ThemeContext'
 import { AuthProvider } from '@/lib/contexts/AuthContexts'
 import Navigation from '@/components/Navigation'
-import { BoltNewBadge } from '@/components/ui/bolt-new-badge'
+// import { BoltNewBadge } from '@/components/ui/bolt-new-badge'
 
 export const metadata: Metadata = {
   title: 'Thought Police - Reddit Contradiction Analysis',
@@ -21,22 +21,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <AuthProvider>
         <ThemeProvider>
-          <AuthProvider>
+         
             <div className="min-h-screen bg-reddit-light-bg-light dark:bg-reddit-dark-bg transition-colors duration-200">
               <Navigation />
               <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {children}
               </main>
               
-              <BoltNewBadge 
+              {/* <BoltNewBadge 
                 position="bottom-right" 
                 variant="auto" 
                 size="medium"
-              />
+              /> */}
             </div>
-          </AuthProvider>
+          
         </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )
