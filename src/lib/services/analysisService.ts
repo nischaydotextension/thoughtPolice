@@ -1,5 +1,3 @@
-import { redditApi } from './redditApi';
-import { multiModelPipeline } from './multiModelPipeline';
 import { cacheService } from './cacheService';
 import { tokenBudget } from './tokenBudget';
 import { Analysis } from '../types';
@@ -9,8 +7,6 @@ export class AnalysisService {
 
   setVerbose(verbose: boolean) {
     this.verbose = verbose;
-    redditApi.setVerbose(verbose);
-    multiModelPipeline.setVerbose(verbose);
   }
 
   private debug(...args: any[]) {
@@ -27,7 +23,7 @@ export class AnalysisService {
       }
 
       const cleanUsername = username.trim().replace(/^u\//, '');
-      this.debug(`Starting comprehensive analysis for ${cleanUsername}`);
+      this.debug(`Starting analysis for ${cleanUsername} via server API`);
 
       // Check budget status
       const budgetStatus = tokenBudget.getBudgetStatus();
@@ -37,81 +33,44 @@ export class AnalysisService {
         console.warn(`Budget warning: ${budgetStatus.percentage.toFixed(1)}% used`);
       }
 
-      // Check cache first with content validation
-      const userData = await redditApi.getFullUserData(cleanUsername, {
-        maxItems: 5000,
-        maxAge: 365,
-        verbose: this.verbose
+      // Call server-side API for analysis
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          username: cleanUsername,
+          verbose: this.verbose 
+        }),
       });
 
-      if (!userData.user) {
-        throw new Error('User not found on Reddit');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Analysis failed with status ${response.status}`);
       }
 
-      // Check if user has enough content
-      if (userData.comments.length === 0 && userData.posts.length === 0) {
-        throw new Error('User has no public comments or posts to analyze');
-      }
+      const reportData = await response.json();
+      
+      // Create analysis result
+      const analysis: Analysis = {
+        id: `analysis-${Date.now()}-${cleanUsername}`,
+        targetUsername: cleanUsername,
+        analyzerUserId,
+        contradictionsFound: reportData.contradictions?.length || 0,
+        confidenceScore: this.calculateWeightedConfidence(reportData.contradictions || []),
+        analysisDate: new Date().toISOString(),
+        reportData,
+        status: 'completed'
+      };
 
-      this.debug(`Comprehensive data fetched for ${cleanUsername}:`, {
-        comments: userData.comments.length,
-        posts: userData.posts.length,
-        totalContent: userData.comments.length + userData.posts.length,
-        userKarma: userData.user.total_karma,
-        accountAge: Math.floor((Date.now() / 1000 - userData.user.created_utc) / (24 * 60 * 60))
+      this.debug(`Analysis complete for ${cleanUsername}:`, {
+        contradictionsFound: analysis.contradictionsFound,
+        weightedConfidence: analysis.confidenceScore,
+        status: analysis.status
       });
-
-      // Check cache with content validation
-      if (cacheService.hasValidAnalysis(cleanUsername, userData.comments, userData.posts)) {
-        this.debug(`Using cached analysis for ${cleanUsername}`);
-        const cachedReport = cacheService.getAnalysis(cleanUsername, userData.comments, userData.posts);
-        
-        return {
-          id: `analysis-cached-${Date.now()}-${cleanUsername}`,
-          targetUsername: cleanUsername,
-          analyzerUserId,
-          contradictionsFound: cachedReport.contradictions.length,
-          confidenceScore: this.calculateWeightedConfidence(cachedReport.contradictions),
-          analysisDate: new Date().toISOString(),
-          reportData: cachedReport,
-          status: 'completed'
-        };
-      }
-
-      // Perform optimized pipeline analysis
-      this.debug(`Starting optimized pipeline analysis for ${cleanUsername}`);
-      try {
-        const reportData = await multiModelPipeline.analyzeUser(
-          userData.comments, 
-          userData.posts, 
-          cleanUsername
-        );
-        this.debug('AI analysis result:', reportData);
-
-        // Create analysis result with weighted confidence
-        const analysis: Analysis = {
-          id: `analysis-${Date.now()}-${cleanUsername}`,
-          targetUsername: cleanUsername,
-          analyzerUserId,
-          contradictionsFound: reportData.contradictions.length,
-          confidenceScore: this.calculateWeightedConfidence(reportData.contradictions),
-          analysisDate: new Date().toISOString(),
-          reportData,
-          status: 'completed'
-        };
-
-        this.debug(`Analysis complete for ${cleanUsername}:`, {
-          contradictionsFound: analysis.contradictionsFound,
-          weightedConfidence: analysis.confidenceScore,
-          totalItemsAnalyzed: userData.comments.length + userData.posts.length,
-          budgetUsed: tokenBudget.getBudgetStatus().spent.toFixed(4)
-        });
-        
-        return analysis;
-      } catch (aiError) {
-        this.debug('AI analysis failed:', aiError);
-        throw aiError;
-      }
+      
+      return analysis;
 
     } catch (error) {
       this.debug('Analysis failed:', error);
@@ -156,20 +115,23 @@ export class AnalysisService {
       }
       
       // Higher weight for recent contradictions
-      const dates = contradiction.dates.map((d: string) => new Date(d).getTime());
-      const avgDate = (dates[0] + dates[1]) / 2;
-      const ageInDays = (Date.now() - avgDate) / (24 * 60 * 60 * 1000);
-      
-      if (ageInDays < 30) {
-        weight *= 1.3; // Recent contradictions are more significant
-      } else if (ageInDays > 365) {
-        weight *= 0.8; // Older contradictions less significant
+      if (contradiction.dates && contradiction.dates.length >= 2) {
+        const dates = contradiction.dates.map((d: string) => new Date(d).getTime());
+        const avgDate = (dates[0] + dates[1]) / 2;
+        const ageInDays = (Date.now() - avgDate) / (24 * 60 * 60 * 1000);
+        
+        if (ageInDays < 30) {
+          weight *= 1.3; // Recent contradictions are more significant
+        } else if (ageInDays > 365) {
+          weight *= 0.8; // Older contradictions less significant
+        }
       }
       
       // Weight by confidence score
-      weight *= (contradiction.confidenceScore / 100);
+      const confidenceScore = contradiction.confidenceScore || 50;
+      weight *= (confidenceScore / 100);
       
-      weightedSum += contradiction.confidenceScore * weight;
+      weightedSum += confidenceScore * weight;
       totalWeight += weight;
     }
 
@@ -179,8 +141,8 @@ export class AnalysisService {
   async validateUsername(username: string): Promise<boolean> {
     try {
       const cleanUsername = username.trim().replace(/^u\//, '');
-      await redditApi.getUserInfo(cleanUsername);
-      return true;
+      const response = await fetch(`/api/reddit/user/${cleanUsername}/about.json`);
+      return response.ok;
     } catch {
       return false;
     }
@@ -195,8 +157,45 @@ export class AnalysisService {
   }> {
     try {
       const cleanUsername = username.trim().replace(/^u\//, '');
-      return await redditApi.getUserPreview(cleanUsername);
-    } catch {
+      
+      // Get user info
+      const userResponse = await fetch(`/api/reddit/user/${cleanUsername}/about.json`);
+      if (!userResponse.ok) {
+        return {
+          exists: false,
+          karma: 0,
+          accountAge: 'Unknown',
+          recentActivity: false,
+          estimatedComments: 0
+        };
+      }
+
+      const userData = await userResponse.json();
+      const user = userData.data;
+      
+      // Get a small sample of comments to check for recent activity
+      const commentsResponse = await fetch(`/api/reddit/user/${cleanUsername}/comments.json?limit=5`);
+      const commentsData = commentsResponse.ok ? await commentsResponse.json() : null;
+      const hasRecentActivity = commentsData?.data?.children?.length > 0;
+
+      const accountAge = Math.floor((Date.now() / 1000 - user.created_utc) / (24 * 60 * 60));
+      const ageString = accountAge < 30 ? `${accountAge} days` : 
+                       accountAge < 365 ? `${Math.floor(accountAge / 30)} months` : 
+                       `${Math.floor(accountAge / 365)} years`;
+
+      // Better estimation based on karma and account age
+      const dailyKarma = user.comment_karma / Math.max(accountAge, 1);
+      const estimatedComments = Math.min(Math.max(dailyKarma * 2, 100), 8000);
+
+      return {
+        exists: true,
+        karma: user.total_karma || 0,
+        accountAge: ageString,
+        recentActivity: hasRecentActivity,
+        estimatedComments: Math.floor(estimatedComments)
+      };
+    } catch (error) {
+      this.debug('getUserPreview failed:', error);
       return {
         exists: false,
         karma: 0,
@@ -253,41 +252,113 @@ export class AnalysisService {
     
     try {
       // Validate user
-      const user = await redditApi.getUserInfo(cleanUsername);
-      yield { stage: 'validation', progress: 100, data: { user } };
+      const isValid = await this.validateUsername(cleanUsername);
+      if (!isValid) {
+        throw new Error('User not found');
+      }
       
-      // Stream comments
+      yield { stage: 'validation', progress: 100 };
+      
+      // Get user preview
       yield { stage: 'fetching', progress: 0 };
-      const comments: any[] = [];
-      const posts: any[] = [];
+      const preview = await this.getUserPreview(cleanUsername);
+      yield { stage: 'fetching', progress: 50, data: preview };
       
-      let fetchProgress = 0;
-      for await (const batch of redditApi.iterateComments(cleanUsername, { maxItems: 5000 })) {
-        comments.push(...batch);
-        fetchProgress += 10;
-        yield { stage: 'fetching', progress: Math.min(fetchProgress, 80) };
-      }
-      
-      // Stream posts
-      for await (const batch of redditApi.iteratePosts(cleanUsername, { maxItems: 1000 })) {
-        posts.push(...batch);
-        fetchProgress += 5;
-        yield { stage: 'fetching', progress: Math.min(fetchProgress, 100) };
-      }
-      
-      yield { stage: 'fetching', progress: 100, data: { comments: comments.length, posts: posts.length } };
-      
-      // Analysis
+      // Perform analysis
       yield { stage: 'analyzing', progress: 0 };
-      const reportData = await multiModelPipeline.analyzeUser(comments, posts, cleanUsername);
-      yield { stage: 'analyzing', progress: 100, data: reportData };
+      const analysis = await this.analyzeUser(cleanUsername);
+      yield { stage: 'analyzing', progress: 100, data: analysis.reportData };
       
       // Complete
-      yield { stage: 'complete', progress: 100, data: reportData };
+      yield { stage: 'complete', progress: 100, data: analysis.reportData };
       
     } catch (error) {
       yield { stage: 'error', progress: 0, data: { error: error instanceof Error ? error.message : 'Unknown error' } };
     }
+  }
+
+  // Batch analysis for multiple users
+  async analyzeBatch(usernames: string[]): Promise<Analysis[]> {
+    const results: Analysis[] = [];
+    
+    for (const username of usernames) {
+      try {
+        const analysis = await this.analyzeUser(username);
+        results.push(analysis);
+        
+        // Add delay between analyses to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        this.debug(`Batch analysis failed for ${username}:`, error);
+        // Continue with other users even if one fails
+      }
+    }
+    
+    return results;
+  }
+
+  // Get cached analysis if available
+  getCachedAnalysis(username: string): Analysis | null {
+    const cleanUsername = username.trim().replace(/^u\//, '');
+    
+    // This would need to be implemented based on your cache structure
+    // For now, return null to indicate no cached analysis
+    return null;
+  }
+
+  // Health check for the analysis service
+  async healthCheck(): Promise<{
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    services: {
+      reddit: boolean;
+      openrouter: boolean;
+      cache: boolean;
+    };
+    budget: any;
+  }> {
+    const services = {
+      reddit: false,
+      openrouter: false,
+      cache: true // Cache is always available locally
+    };
+
+    // Test Reddit API
+    try {
+      const response = await fetch('/api/reddit/r/test.json', { method: 'HEAD' });
+      services.reddit = response.ok;
+    } catch {
+      services.reddit = false;
+    }
+
+    // Test OpenRouter (would need a test endpoint)
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'test', healthCheck: true })
+      });
+      services.openrouter = response.status !== 500;
+    } catch {
+      services.openrouter = false;
+    }
+
+    const budget = this.getBudgetStats();
+    const healthyServices = Object.values(services).filter(Boolean).length;
+    
+    let status: 'healthy' | 'degraded' | 'unhealthy';
+    if (healthyServices === 3) {
+      status = 'healthy';
+    } else if (healthyServices >= 2) {
+      status = 'degraded';
+    } else {
+      status = 'unhealthy';
+    }
+
+    return {
+      status,
+      services,
+      budget
+    };
   }
 }
 

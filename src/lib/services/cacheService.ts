@@ -18,16 +18,22 @@ class CacheService {
   private cache = new Map<string, CacheEntry>();
   private readonly DEFAULT_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
   private readonly CACHE_VERSION = '2.0';
-  private readonly MAX_CACHE_SIZE = 50; // Maximum number of cached analyses
+  private readonly MAX_CACHE_SIZE = 50;
   private hits = 0;
   private misses = 0;
+  private isClient = typeof window !== 'undefined';
 
   constructor() {
-    this.loadFromStorage();
-    this.setupPeriodicCleanup();
+    // Only load from storage on client-side
+    if (this.isClient) {
+      this.loadFromStorage();
+      this.setupPeriodicCleanup();
+    }
   }
 
   private loadFromStorage(): void {
+    if (!this.isClient) return;
+    
     try {
       const stored = localStorage.getItem('thoughtPoliceCache');
       if (stored) {
@@ -57,11 +63,14 @@ class CacheService {
   }
 
   private saveToStorage(): void {
+    if (!this.isClient) return;
+    
     const data = {
       version: this.CACHE_VERSION,
       entries: Object.fromEntries(this.cache.entries()),
       lastSaved: Date.now()
     };
+    
     try {
       localStorage.setItem('thoughtPoliceCache', JSON.stringify(data));
     } catch (error) {
@@ -138,9 +147,6 @@ class CacheService {
     }
   }
 
-  /**
-   * Store analysis result in cache with content-based invalidation
-   */
   setAnalysis(username: string, data: any, comments: any[] = [], posts: any[] = [], ttl: number = this.DEFAULT_TTL): void {
     const contentHash = this.generateContentHash(comments, posts);
     const key = this.getAnalysisKey(username, contentHash);
@@ -159,14 +165,11 @@ class CacheService {
     }
     
     this.cache.set(key, entry);
-    console.log(`Cached analysis for user: ${username}, hash: ${contentHash}, expires in ${Math.round(ttl / (24 * 60 * 60 * 1000))} days`);
+    console.log(`Cached analysis for user: ${username}, hash: ${contentHash}`);
     
     this.saveToStorage();
   }
 
-  /**
-   * Get cached analysis result with content validation
-   */
   getAnalysis(username: string, comments: any[] = [], posts: any[] = []): any | null {
     const contentHash = this.generateContentHash(comments, posts);
     const key = this.getAnalysisKey(username, contentHash);
@@ -174,44 +177,24 @@ class CacheService {
     
     if (!entry) {
       this.misses++;
-      
-      // Check if we have any cache for this user (with different content)
-      const userKeys = Array.from(this.cache.keys()).filter(k => k.startsWith(`analysis:${username.toLowerCase()}:`));
-      if (userKeys.length > 0) {
-        console.log(`Cache miss for user: ${username} - content has changed (hash: ${contentHash})`);
-        
-        // Clean up old entries for this user
-        userKeys.forEach(oldKey => this.cache.delete(oldKey));
-        this.saveToStorage();
-      }
-      
       return null;
     }
     
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
       this.misses++;
-      console.log(`Cache expired for user: ${username}`);
       this.saveToStorage();
       return null;
     }
     
     this.hits++;
-    const age = Math.round((Date.now() - entry.timestamp) / (60 * 60 * 1000));
-    console.log(`Cache hit for user: ${username}, age: ${age} hours, hash: ${contentHash}`);
     return entry.data;
   }
 
-  /**
-   * Check if analysis is cached and still valid
-   */
   hasValidAnalysis(username: string, comments: any[] = [], posts: any[] = []): boolean {
     return this.getAnalysis(username, comments, posts) !== null;
   }
 
-  /**
-   * Clear cache for specific user (all content versions)
-   */
   clearAnalysis(username: string): void {
     const userKeys = Array.from(this.cache.keys()).filter(k => 
       k.startsWith(`analysis:${username.toLowerCase()}:`)
@@ -222,9 +205,6 @@ class CacheService {
     this.saveToStorage();
   }
 
-  /**
-   * Clear all cached data
-   */
   clearAll(): void {
     this.cache.clear();
     this.hits = 0;
@@ -233,9 +213,6 @@ class CacheService {
     this.saveToStorage();
   }
 
-  /**
-   * Get comprehensive cache statistics
-   */
   getStats(): CacheStats {
     const now = Date.now();
     let validEntries = 0;
@@ -248,8 +225,6 @@ class CacheService {
       } else {
         expiredEntries++;
       }
-      
-      // Estimate size (rough approximation)
       totalSize += JSON.stringify(entry).length;
     });
     
@@ -265,9 +240,6 @@ class CacheService {
     };
   }
 
-  /**
-   * Get cache entries for debugging
-   */
   getDebugInfo(): Array<{
     key: string;
     username: string;

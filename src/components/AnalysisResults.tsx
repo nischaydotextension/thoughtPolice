@@ -14,7 +14,7 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
-import { Analysis, Contradiction } from '../types';
+import { Analysis, Contradiction } from '../lib/types';
 
 interface AnalysisResultsProps {
   analysis: Analysis;

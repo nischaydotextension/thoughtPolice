@@ -8,15 +8,36 @@ export async function GET(
   const searchParams = request.nextUrl.searchParams
   
   try {
-    const redditUrl = `https://www.reddit.com/${path}?${searchParams.toString()}`
+    // Handle different Reddit endpoints
+    let apiUrl: string
     
-    const response = await fetch(redditUrl, {
+    if (path.includes('pushshift')) {
+      // Handle Pushshift requests (though it's deprecated)
+      const author = searchParams.get('author')
+      const size = searchParams.get('size') || '100'
+      const before = searchParams.get('before')
+      
+      // Use Reddit's official API instead of Pushshift
+      apiUrl = `https://www.reddit.com/user/${author}/comments.json?limit=${size}&sort=new`
+      if (before) {
+        // Convert timestamp to Reddit's after parameter logic
+        apiUrl += `&before=${before}`
+      }
+    } else {
+      // Regular Reddit API
+      apiUrl = `https://www.reddit.com/${path}?${searchParams.toString()}`
+    }
+    
+    const response = await fetch(apiUrl, {
       headers: {
-        'User-Agent': 'ThoughtPolice/1.0.0',
+        'User-Agent': 'ThoughtPolice/1.0.0 (by /u/Over-Economist-3309)',
       },
     })
     
     if (!response.ok) {
+      if (response.status === 404) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      }
       throw new Error(`Reddit API error: ${response.status}`)
     }
     
