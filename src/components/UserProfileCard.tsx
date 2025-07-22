@@ -1140,7 +1140,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                   </motion.button>
 
                   {/* Native Share (if supported) */}
-                  {navigator.share && (
+                  {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
                     <motion.button
                       onClick={() => shareToSocial('native')}
                       disabled={isCapturing}
@@ -1270,7 +1270,7 @@ const UserProfileCard: React.FC<UserProfileCardProps> = ({ user, isOpen, onClose
                     <span>Facebook</span>
                   </motion.button>
 
-                  {navigator.share && (
+                  {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
                     <motion.button
                       onClick={() => shareToSocial('native', capturedImage)}
                       className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"

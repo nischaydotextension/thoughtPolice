@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
-  const path = params.path.join('/')
+  // Await the params since they're now wrapped in a Promise
+  const { path } = await context.params
+  const pathString = path.join('/')
   const searchParams = request.nextUrl.searchParams
   
   try {
     // Handle different Reddit endpoints
     let apiUrl: string
     
-    if (path.includes('pushshift')) {
+    if (pathString.includes('pushshift')) {
       // Handle Pushshift requests (though it's deprecated)
       const author = searchParams.get('author')
       const size = searchParams.get('size') || '100'
@@ -25,7 +27,7 @@ export async function GET(
       }
     } else {
       // Regular Reddit API
-      apiUrl = `https://www.reddit.com/${path}?${searchParams.toString()}`
+      apiUrl = `https://www.reddit.com/${pathString}?${searchParams.toString()}`
     }
     
     const response = await fetch(apiUrl, {

@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Star, QrCode } from 'lucide-react';
-import { User } from '../types';
-import { rankInfo } from '../data/mockData';
+
+
+import { User } from '@/lib/types';
+import { rankInfo } from '@/lib/data/mockData';
 
 interface PoliceCardProps {
   user: User;

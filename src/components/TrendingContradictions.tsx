@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, MessageSquare, ThumbsUp, ExternalLink, Clock } from 'lucide-react';
-import { mockContradictions } from '../data/mockData';
+import { mockContradictions } from '@/lib/data/mockData';
+
 
 const TrendingContradictions: React.FC = () => {
   return (
