@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, ReactNode } from 'react'
-import { useSession } from '@/lib/auth-client'
+import { useSession, signIn as authSignIn, signOut as authSignOut } from '@/lib/auth-client'
 
 interface AuthContextType {
   user: any
@@ -14,16 +14,31 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Now this works as a normal React hook
   const { data: session, isPending: isLoading } = useSession()
   
-  const handleSignIn = () => {
-    window.location.href = '/api/auth/signin/reddit'
+  const handleSignIn = async () => {
+    try {
+      await authSignIn.social({
+        provider: 'reddit',
+        callbackURL: '/profile', // Redirect to profile after successful login
+      })
+    } catch (error) {
+      console.error('Sign in error:', error)
+    }
   }
   
   const handleSignOut = async () => {
-    await fetch('/api/auth/signout', { method: 'POST' })
-    window.location.href = '/'
+    try {
+      await authSignOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.href = '/'
+          }
+        }
+      })
+    } catch (error) {
+      console.error('Sign out error:', error)
+    }
   }
 
   const value = {
